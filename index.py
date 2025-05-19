@@ -3,8 +3,13 @@
 
 import streamlit as st
 import pandas as pd
-import openpyxl
 import plotly.express as px
+import plotly.graph_objects as go
+import openpyxl
+from openpyxl import load_workbook  
+from openpyxl.utils.dataframe import dataframe_to_rows
+import tempfile
+
 
 st.title("Análise de Planilhas Excel com Streamlit")
 st.write("""
