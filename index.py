@@ -17,6 +17,7 @@ Esta aplicação permite:
 - Visualizar dashboards de desempenho
 """)
 
+
 uploaded_file = st.file_uploader("Escolha um arquivo Excel", type=["xlsx"])
 if uploaded_file is not None:
     # Salva o arquivo temporariamente
