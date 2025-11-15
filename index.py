@@ -6,11 +6,11 @@ import pandas as pd
 import openpyxl
 import plotly.express as px
 
-st.title("Análise de Planilhas Excel com Streamlit")
+st.title("Análise de Planilhas Excel e CSV com Streamlit")
 st.write("""
 Esta aplicação permite:
-- Carregar uma planilha Excel
-- Visualizar abas e escolher a linha de cabeçalho
+- Carregar uma planilha Excel ou arquivo CSV
+- Visualizar abas (Excel) e escolher a linha de cabeçalho
 - Limpar e equalizar os dados (remover duplicatas, linhas/colunas vazias)
 - Apurar carteiras, totais e pessoas físicas por unidade de operação
 - Verificar inconsistências
@@ -18,32 +18,57 @@ Esta aplicação permite:
 """)
 
 
-uploaded_file = st.file_uploader("Escolha um arquivo Excel", type=["xlsx"])
+uploaded_file = st.file_uploader("Escolha um arquivo Excel ou CSV", type=["xlsx", "csv"])
 if uploaded_file is not None:
+    # Detecta o tipo de arquivo
+    file_extension = uploaded_file.name.split('.')[-1].lower()
+    
     # Salva o arquivo temporariamente
-    temp_filename = 'planilha_temp.xlsx'
+    if file_extension == 'csv':
+        temp_filename = 'planilha_temp.csv'
+    else:
+        temp_filename = 'planilha_temp.xlsx'
+    
     with open(temp_filename, 'wb') as f:
         f.write(uploaded_file.getbuffer())
     st.success("Arquivo carregado com sucesso!")
 
-    # Carrega o arquivo Excel
-    excel_file = pd.ExcelFile(temp_filename)
-    st.write("Abas disponíveis:", excel_file.sheet_names)
+    # Carrega o arquivo conforme o tipo
+    if file_extension == 'csv':
+        # Para CSV, carrega diretamente
+        base_dados = pd.read_csv(temp_filename)
+        st.write("Primeiras 15 linhas da base de dados:")
+        st.dataframe(base_dados.head(15))
+        
+        # Escolha da linha de cabeçalho
+        linha_cabecalho = st.number_input(
+            "Informe o número da linha que contém os nomes das colunas (começando do 0)", 
+            min_value=0, max_value=min(50, len(base_dados)-1), value=0,
+            key="csv_header"
+        )
+        
+        # Carrega novamente com o cabeçalho correto
+        df = pd.read_csv(temp_filename, header=linha_cabecalho)
+    else:
+        # Para Excel, mantém a lógica de abas
+        excel_file = pd.ExcelFile(temp_filename)
+        st.write("Abas disponíveis:", excel_file.sheet_names)
 
-    # Visualiza as primeiras linhas da aba principal
-    aba_padrao = st.selectbox("Selecione a aba para análise", excel_file.sheet_names)
-    base_dados = pd.read_excel(excel_file, sheet_name=aba_padrao)
-    st.write("Primeiras 15 linhas da base de dados:")
-    st.dataframe(base_dados.head(15))
+        # Visualiza as primeiras linhas da aba principal
+        aba_padrao = st.selectbox("Selecione a aba para análise", excel_file.sheet_names)
+        base_dados = pd.read_excel(excel_file, sheet_name=aba_padrao)
+        st.write("Primeiras 15 linhas da base de dados:")
+        st.dataframe(base_dados.head(15))
 
-    # Escolha da linha de cabeçalho
-    linha_cabecalho = st.number_input(
-        "Informe o número da linha que contém os nomes das colunas (começando do 0)", 
-        min_value=0, max_value=min(50, len(base_dados)-1), value=0
-    )
+        # Escolha da linha de cabeçalho
+        linha_cabecalho = st.number_input(
+            "Informe o número da linha que contém os nomes das colunas (começando do 0)", 
+            min_value=0, max_value=min(50, len(base_dados)-1), value=0,
+            key="excel_header"
+        )
 
-    # Carrega novamente com o cabeçalho correto
-    df = pd.read_excel(excel_file, sheet_name=aba_padrao, header=linha_cabecalho)
+        # Carrega novamente com o cabeçalho correto
+        df = pd.read_excel(excel_file, sheet_name=aba_padrao, header=linha_cabecalho)
 
     # Limpeza e equalização
     df.columns = [str(col).strip().title() for col in df.columns]
