@@ -70,10 +70,14 @@ if uploaded_file is not None:
         # Carrega novamente com o cabeçalho correto
         df = pd.read_excel(excel_file, sheet_name=aba_padrao, header=linha_cabecalho)
 
-    # Limpeza e equalização
-    df.columns = [str(col).strip().title() for col in df.columns]
+    # Limpeza e equalização - preserva os nomes originais das colunas
+    # Remove apenas espaços em branco e garante que sejam strings válidas
+    df.columns = [str(col).strip() if pd.notna(col) else f"Coluna_{i}" for i, col in enumerate(df.columns)]
+    
+    # Remove colunas com nomes vazios e substitui por nomes válidos
+    df.columns = [col if col != '' else f"Coluna_{i}" for i, col in enumerate(df.columns)]
 
-    # Garante nomes únicos para as colunas
+    # Garante nomes únicos para as colunas (sem alterar os nomes originais)
     def make_unique(cols):
         seen = {}
         result = []
@@ -103,11 +107,17 @@ if uploaded_file is not None:
     col_carteira = st.selectbox("Selecione a coluna de Carteira", df.columns)
     col_pessoa = st.selectbox("Selecione a coluna de Pessoa Física", df.columns)
 
-    resumo = df.groupby([col_unidade, col_carteira], as_index=False)[col_pessoa].count().rename(columns={col_pessoa: "Total Pessoas"})
+    resumo = df.groupby([col_unidade, col_carteira], as_index=False)[col_pessoa].count()
+    resumo = resumo.rename(columns={col_pessoa: "Total_Pessoas"})
+    # Garante que os nomes das colunas estejam corretos
+    resumo.columns = [str(col).strip() for col in resumo.columns]
     st.dataframe(resumo)
 
     # Total por unidade (independente da carteira)
-    resumo_unidade = df.groupby(col_unidade, as_index=False)[col_pessoa].count().rename(columns={col_pessoa: "Total Pessoas"})
+    resumo_unidade = df.groupby(col_unidade, as_index=False)[col_pessoa].count()
+    resumo_unidade = resumo_unidade.rename(columns={col_pessoa: "Total_Pessoas"})
+    # Garante que os nomes das colunas estejam corretos
+    resumo_unidade.columns = [str(col).strip() for col in resumo_unidade.columns]
     st.subheader("Total por Unidade de Operação")
     st.dataframe(resumo_unidade)
 
@@ -141,6 +151,8 @@ if uploaded_file is not None:
         st.plotly_chart(fig, use_container_width=True)
     else:
         resumo_pizza = df.groupby(col_carteira, as_index=False)[col_valor].sum()
+        # Garante que os nomes das colunas estejam corretos
+        resumo_pizza.columns = [str(col).strip() for col in resumo_pizza.columns]
         resumo_pizza[col_valor] = pd.to_numeric(resumo_pizza[col_valor], errors='coerce')
         resumo_pizza = resumo_pizza.dropna(subset=[col_valor])
         if resumo_pizza.empty:
@@ -159,6 +171,8 @@ if uploaded_file is not None:
     col_valor_unidade = st.selectbox("Selecione a coluna de valor para o dashboard por unidade", df.columns, key="valor_unidade")
     df[col_valor_unidade] = pd.to_numeric(df[col_valor_unidade], errors='coerce')
     resumo_valor_unidade = df.groupby(col_unidade, as_index=False)[col_valor_unidade].sum()
+    # Garante que os nomes das colunas estejam corretos
+    resumo_valor_unidade.columns = [str(col).strip() for col in resumo_valor_unidade.columns]
 
     fig_valor_unidade = px.bar(
         resumo_valor_unidade,
